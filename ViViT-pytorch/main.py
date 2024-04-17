@@ -59,10 +59,48 @@ def accuracy(preds, labels):
     return (preds.argmax(dim=1) == labels).float().mean()
 
 
+def precision(preds, labels):
+    tp = (preds.argmax(dim=1) & labels).float().sum()
+    fn = ((~preds.argmax(dim=1)) & labels).float().sum()
+    if tp + fn == 0:
+        return 0
+    else:
+        return tp / (tp + fn)
+
+
+def recall(preds, labels):
+    tp = (preds.argmax(dim=1) & labels).float().sum()
+    fp = (preds.argmax(dim=1) & (~labels)).float().sum()
+    if tp + fp == 0:
+        return 0
+    else:
+        return tp / (tp + fp)
+
+
+def f1_score(preds, labels):
+    prec = precision(preds, labels)
+    rec = recall(preds, labels)
+    if prec + rec == 0:
+        return 0
+    else:
+        return 2 * (prec * rec) / (prec + rec)
+
+
+def file_debug(preds, labels, step, args):
+    Path("./debug").mkdir(parents=True, exist_ok=True)
+    Path("./debug/predictions.txt").touch(exist_ok=True)
+    with open("./debug/predictions.txt", "a") as f:
+        f.write(f"STEP: {step}/{args.train_steps}\n" \
+                f"Predictions: {preds.argmax(dim=1)}\n" \
+                f"Ground Truth: {labels}\n\n")
+
+
 def train_loop(args, model, optimizer, criterion, train_loader, val_loader, scheduler):
     pbar = tqdm.tqdm(total=args.eval_steps, position=0, leave=True)
     train_lb_size = train_loader.dataset.__len__()
     val_size = val_loader.dataset.__len__()
+    if Path("debug/predictions.txt").exists():
+        Path("debug/predictions.txt").unlink()
     wandb.init(
         project='SceneUnderstanding',
         name=f'{args.name}_{train_lb_size}LB_{val_size}VL',
@@ -100,16 +138,25 @@ def train_loop(args, model, optimizer, criterion, train_loader, val_loader, sche
             pbar.close()
             pbar = tqdm.tqdm(total=len(val_loader), position=0, leave=True, desc="Validating...")
             model.eval()
+            predictions = torch.tensor([], dtype=torch.float32)
+            ground_truths = torch.tensor([], dtype=torch.int32)
             for val_batch in val_loader:
                 imgs, labels = val_batch
                 imgs, labels = imgs.to(args.device), labels.to(args.device)
                 with torch.inference_mode():
                     preds = model(imgs)
+                    predictions = torch.cat((predictions, preds.cpu()))
+                    ground_truths = torch.cat((ground_truths, labels.int().cpu()))
                     loss = criterion(preds, labels)
                     val_loss.update(loss.item())
                     val_acc.update(accuracy(preds, labels))
                 pbar.update(1)
-            pbar.set_description(f"{step+1:4d}/{args.train_steps}  VALID/loss: {val_loss.avg:.4E} | VALID/acc: {val_acc.avg:.4f}")
+
+            prec = precision(predictions, ground_truths)
+            rec = recall(predictions, ground_truths)
+            f1 = f1_score(predictions, ground_truths)
+            pbar.set_description(f"{step+1:4d}/{args.train_steps}  VALID/loss: {val_loss.avg:.4E} | VALID/acc: {val_acc.avg:.4f}" \
+                                 f" | VALID/prec: {prec:.4f} | VALID/rec: {rec:.4f} | VALID/f1: {f1:.4f}")
             pbar.close()
             if val_acc.avg > top1_acc:
                 top1_acc = val_acc.avg
@@ -132,7 +179,9 @@ def train_loop(args, model, optimizer, criterion, train_loader, val_loader, sche
             val_acc.reset()
             train_loss.reset()
             train_acc.reset()
-            pbar = tqdm.tqdm(total=args.eval_steps, position=0, leave=True)
+            file_debug(predictions, ground_truths, step, args)
+            if (step + 1) != args.train_steps:
+                pbar = tqdm.tqdm(total=args.eval_steps, position=0, leave=True)
 
 
 if __name__ == "__main__":
@@ -159,7 +208,7 @@ if __name__ == "__main__":
         emb_dropout=0.1,
         scale_dim=4
     ).to(args.device)
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.CrossEntropyLoss(weight = train_dataset.get_weights())
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, 

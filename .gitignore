@@ -1,2 +1,4 @@
 data/*
 checkpoints/*
+debug/*
+datasets_cache/*

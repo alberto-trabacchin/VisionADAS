@@ -87,6 +87,14 @@ class NuScenesDS(Dataset):
         if self.transform:
             images = self.transform(images)
         return images, target
+    
+    def get_weights(self):
+        n_safe = self.targets.count(0)
+        n_dang = self.targets.count(1)
+        n_total = len(self.targets)
+        w_safe = n_safe / n_total
+        w_dang = 1.0 - w_safe
+        return torch.tensor([w_safe, w_dang])
 
 
 def get_nuscenes_data(args):
