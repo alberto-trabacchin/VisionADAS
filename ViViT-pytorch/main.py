@@ -208,7 +208,10 @@ if __name__ == "__main__":
         emb_dropout=0.1,
         scale_dim=4
     ).to(args.device)
-    criterion = torch.nn.CrossEntropyLoss(weight = train_dataset.get_weights())
+
+    criterion = torch.nn.CrossEntropyLoss(
+        weight = train_dataset.get_weights().to(args.device)
+    )
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, 

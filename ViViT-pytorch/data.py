@@ -52,9 +52,8 @@ class NuScenesDS(Dataset):
             cache = torch.load(f"{cache_path}/{version}.pth")
             self.data = cache["data"]
             self.targets = cache["targets"]
-
+        
         self.data = [d[:n_frames] for d in self.data]
-        self.targets = self.targets[:n_frames]
 
 
     def _get_frames_paths(self, scene_rec):
@@ -91,8 +90,7 @@ class NuScenesDS(Dataset):
     def get_weights(self):
         n_safe = self.targets.count(0)
         n_dang = self.targets.count(1)
-        n_total = len(self.targets)
-        w_safe = n_safe / n_total
+        w_safe = n_safe / (n_safe + n_dang)
         w_dang = 1.0 - w_safe
         return torch.tensor([w_safe, w_dang])
 
