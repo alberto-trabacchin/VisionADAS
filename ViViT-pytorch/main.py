@@ -7,6 +7,7 @@ from vivit import ViViT
 import wandb
 import tqdm
 import torch
+import metrics
 
 
 def parse_args():
@@ -38,61 +39,18 @@ def get_model_size(model):
     print('model size: {:.3f}MB'.format(size_all_mb))
 
 
-class AverageMeter:
-    def __init__(self):
-        self.reset()
-    
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-    
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
-
-def accuracy(preds, labels):
-    return (preds.argmax(dim=1) == labels).float().mean()
-
-
-def precision(preds, labels):
-    tp = (preds.argmax(dim=1) & labels).float().sum()
-    fn = ((~preds.argmax(dim=1)) & labels).float().sum()
-    if tp + fn == 0:
-        return 0
-    else:
-        return tp / (tp + fn)
-
-
-def recall(preds, labels):
-    tp = (preds.argmax(dim=1) & labels).float().sum()
-    fp = (preds.argmax(dim=1) & (~labels)).float().sum()
-    if tp + fp == 0:
-        return 0
-    else:
-        return tp / (tp + fp)
-
-
-def f1_score(preds, labels):
-    prec = precision(preds, labels)
-    rec = recall(preds, labels)
-    if prec + rec == 0:
-        return 0
-    else:
-        return 2 * (prec * rec) / (prec + rec)
-
-
 def file_debug(preds, labels, step, args):
     Path("./debug").mkdir(parents=True, exist_ok=True)
     Path("./debug/predictions.txt").touch(exist_ok=True)
     with open("./debug/predictions.txt", "a") as f:
-        f.write(f"STEP: {step}/{args.train_steps}\n" \
+        f.write(f"STEP: {step+1}/{args.train_steps}\n" \
                 f"Predictions: {preds.argmax(dim=1)}\n" \
-                f"Ground Truth: {labels}\n\n")
+                f"Ground Truth: {labels}\n" \
+                f"Accuracy: {metrics.accuracy(preds, labels):.4f}\n" \
+                f"Precision: {metrics.precision(preds, labels):.4f}\n" \
+                f"Recall: {metrics.recall(preds, labels):.4f}\n" \
+                f"F1 Score: {metrics.f1_score(preds, labels):.4f}\n" \
+                f"---------------------------------\n\n")
 
 
 def train_loop(args, model, optimizer, criterion, train_loader, val_loader, scheduler):
@@ -107,11 +65,12 @@ def train_loop(args, model, optimizer, criterion, train_loader, val_loader, sche
         config=args
     )
     train_iter = iter(train_loader)
-    train_loss = AverageMeter()
-    val_loss = AverageMeter()
-    train_acc = AverageMeter()
-    val_acc = AverageMeter()
+    train_loss = metrics.AverageMeter()
+    val_loss = metrics.AverageMeter()
+    train_acc = metrics.AverageMeter()
+    val_acc = metrics.AverageMeter()
     top1_acc = 0
+    top_f1 = 0
 
     for step in range(args.train_steps):
         model.train()
@@ -127,7 +86,7 @@ def train_loop(args, model, optimizer, criterion, train_loader, val_loader, sche
         preds = model(imgs)
         loss = criterion(preds, labels)
         train_loss.update(loss.item())
-        train_acc.update(accuracy(preds, labels))
+        train_acc.update(metrics.accuracy(preds, labels))
         loss.backward()
         optimizer.step()
         scheduler.step()
@@ -149,17 +108,19 @@ def train_loop(args, model, optimizer, criterion, train_loader, val_loader, sche
                     ground_truths = torch.cat((ground_truths, labels.int().cpu()))
                     loss = criterion(preds, labels)
                     val_loss.update(loss.item())
-                    val_acc.update(accuracy(preds, labels))
+                    val_acc.update(metrics.accuracy(preds, labels))
                 pbar.update(1)
 
-            prec = precision(predictions, ground_truths)
-            rec = recall(predictions, ground_truths)
-            f1 = f1_score(predictions, ground_truths)
+            prec = metrics.precision(predictions, ground_truths)
+            rec = metrics.recall(predictions, ground_truths)
+            f1 = metrics.f1_score(predictions, ground_truths)
             pbar.set_description(f"{step+1:4d}/{args.train_steps}  VALID/loss: {val_loss.avg:.4E} | VALID/acc: {val_acc.avg:.4f}" \
                                  f" | VALID/prec: {prec:.4f} | VALID/rec: {rec:.4f} | VALID/f1: {f1:.4f}")
             pbar.close()
             if val_acc.avg > top1_acc:
                 top1_acc = val_acc.avg
+            if f1 > top_f1:
+                top_f1 = f1
                 save_path = Path('checkpoints/')
                 save_path.mkdir(parents=True, exist_ok=True)
                 save_path = save_path / f'{args.name}.pth'
@@ -171,10 +132,11 @@ def train_loop(args, model, optimizer, criterion, train_loader, val_loader, sche
                 "train/acc": train_acc.avg,
                 "val/loss": val_loss.avg,
                 "val/acc": val_acc.avg,
-                "top1_acc": top1_acc
+                "top1_acc": top1_acc,
+                "top_f": top_f1
             }, step = step)
             # wandb.watch(models = model, log='all')
-            print(f'top1_acc: {top1_acc:.6f}\n')
+            print(f'top_f1: {top_f1:.6f}\n')
             val_loss.reset()
             val_acc.reset()
             train_loss.reset()
