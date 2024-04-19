@@ -155,11 +155,11 @@ if __name__ == "__main__":
 
     model = ViViT(
         image_size=args.img_size, 
-        patch_size=25,
+        patch_size=20,
         num_classes=2,
         num_frames=args.n_frames,
-        dim=192,
-        depth=6,
+        dim=300,
+        depth=10,
         heads=4,
         in_channels=3,
         dim_head=128,

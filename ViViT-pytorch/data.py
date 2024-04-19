@@ -111,21 +111,21 @@ def get_dataloaders(train_dataset, val_dataset, test_dataset, args):
         batch_size = args.batch_size,
         shuffle = True,
         num_workers = args.workers,
-        pin_memory = False
+        pin_memory = True
     )
     val_loader = DataLoader(
         dataset = val_dataset,
         batch_size = args.batch_size,
         shuffle = True,
         num_workers = args.workers,
-        pin_memory = False
+        pin_memory = True
     )
     test_loader = DataLoader(
         dataset = test_dataset,
         batch_size = args.batch_size,
         shuffle = True,
         num_workers = args.workers,
-        pin_memory = False
+        pin_memory = True
     )
     return train_loader, val_loader, test_loader
 
