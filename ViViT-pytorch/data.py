@@ -9,75 +9,58 @@ import data
 from torchvision.transforms import v2
 from pathlib import Path
 from torch.utils.data import DataLoader
+import argparse
+from PIL import Image
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-path", type=str, required=True)
+    parser.add_argument("--batch-size", type=int, default=4)
+    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--n-frames", type=int, default=190)
+    parser.add_argument("--workers", type=int, default=4)
+    args = parser.parse_args()
+    args.device = torch.device(args.device)
+    return args
 
 
 class NuScenesDS(Dataset):
-    def __init__(self, args, version, ann_path, n_frames, transform, target_transform=None, verbose=True):
+    
+    def __init__(self, args, version, transform, target_transform):
+        self.root = Path(args.data_path)
         self.version = version
-        self.ann_path = ann_path
+        if (version == "train") or (version == "val") or (version == "test"):
+            self.data_path = Path(f"{args.data_path}/{version}")
+        else:
+            raise SystemError("Invalid version. Choose from 'train', 'val', 'test'.")
         self.transform = transform
         self.target_transform = target_transform
-        cache_path = "datasets_cache"
-        Path(cache_path).mkdir(exist_ok=True)
-        if not Path(f"{cache_path}/{version}.pth").exists():
-            if (version == "train") or (version == "val"):
-                self.nusc = nuscenes_edit.NuScenes(dataroot = args.data_path, version="v1.0-trainval", verbose=verbose)
-            elif version == "test":
-                self.nusc = nuscenes_edit.NuScenes(dataroot = args.data_path, version="v1.0-test", verbose=verbose)
-            else:
-                raise SystemError("Invalid version. Choose from 'train', 'val', 'test'.")
-            
-            if version == "train":
-                self.scenes = self.nusc.scene[:700]
-            elif version == "val":
-                self.scenes = self.nusc.scene[700:]
-            else:
-                self.scenes = self.nusc.scene
+        self.data, self.targets = self._load_data(self.data_path)
 
-            self.annotations = json.load(open(f"{ann_path}/{version}.json", "r"))
-            self.data = []
-            self.targets = []
-            pbar = tqdm.tqdm(total=len(self.annotations), desc=f"Loading {version} data")
-            for ann in self.annotations:
-                scene_rec = self.nusc.get("scene", ann["token"])
-                paths = self._get_frames_paths(scene_rec)
-                self.data.append(paths)
-                self.targets.append(ann["annotation_id"])
-                pbar.update(1)
-            pbar.close()
-            torch.save({"data": self.data, "targets": self.targets}, f"datasets_cache/{version}.pth")
-            print(f"Data saved to cache: datasets_cache/{version}.pth")
-        else:
-            print(f"Loading {version} data from cache...")
-            cache = torch.load(f"{cache_path}/{version}.pth")
-            self.data = cache["data"]
-            self.targets = cache["targets"]
-        
-        self.data = [d[:n_frames] for d in self.data]
-
-
-    def _get_frames_paths(self, scene_rec):
-        sample_rec = self.nusc.get("sample", scene_rec["first_sample_token"])
-        sd_rec = self.nusc.get("sample_data", sample_rec["data"]["CAM_FRONT"])
-        has_more_frames = True
-        self.img_paths = []
-        while has_more_frames:
-            im_path, _, _ = self.nusc.get_sample_data(sd_rec["token"])
-            self.img_paths.append(im_path)
-            if not sd_rec["next"] == "":
-                sd_rec = self.nusc.get("sample_data", sd_rec["next"])
-            else:
-                has_more_frames = False
-        return self.img_paths
+    def _load_data(self, data_path):
+        safe_recs = Path(f"{data_path}/safe").iterdir()
+        dang_recs = Path(f"{data_path}/dangerous").iterdir()
+        data = []
+        targets = []
+        for rec in safe_recs:
+            frames = [f for f in rec.iterdir()]
+            data.append(frames)
+            targets.append(0)
+        for rec in dang_recs:
+            frames = [f for f in rec.iterdir()]
+            data.append(frames)
+            targets.append(1)
+        return data, targets
 
     def __len__(self):
         return len(self.data)
-    
+
     def __getitem__(self, idx):
         target = self.targets[idx]
         images = []
         for path in self.data[idx]:
-            img = read_image(path)
+            img = Image.open(path)
             img = self.transform(img)
             images.append(img)
         images = torch.stack(images)
@@ -95,35 +78,29 @@ class NuScenesDS(Dataset):
         return torch.tensor([w_safe, w_dang])
 
 
-def get_nuscenes_data(args):
+def get_nuscenes_data(args): 
     transforms = v2.Compose([
-        v2.Resize(size=(args.img_size, args.img_size), antialias=True),
+        v2.ToImage(),
         v2.ToDtype(torch.float32, scale=True),
-        v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        # v2.Normalize(mean = [0.4175, 0.4213, 0.4137], std = [0.2029, 0.2005, 0.2079])
     ])
     train_dataset = data.NuScenesDS(
-        args, 
-        version = "train", 
-        ann_path=args.anns_path,
-        n_frames=args.n_frames,
+        args,
+        version = "train",
         transform=transforms,
-        verbose = False
+        target_transform=None
     )
     val_dataset = data.NuScenesDS(
-        args, 
-        version = "val", 
-        ann_path=args.anns_path,
-        n_frames=args.n_frames, 
+        args,
+        version = "val",
         transform=transforms,
-        verbose = False
+        target_transform=None
     )
     test_dataset = data.NuScenesDS(
-        args, 
-        version = "test", 
-        ann_path=args.anns_path,
-        n_frames=args.n_frames,
+        args,
+        version = "test",
         transform=transforms,
-        verbose = False
+        target_transform=None
     )
     return train_dataset, val_dataset, test_dataset
 
@@ -151,3 +128,40 @@ def get_dataloaders(train_dataset, val_dataset, test_dataset, args):
         pin_memory = True
     )
     return train_loader, val_loader, test_loader
+
+
+def get_norm_params(args, train_loader):
+    means_red = []
+    means_green = []
+    means_blue = []
+    stds_red = []
+    stds_green = []
+    stds_blue = []
+    for batch in train_loader:
+        imgs, _ = batch
+        imgs.to(args.device)
+        means_red.append(imgs[:, :, [0]].mean().cpu())
+        means_green.append(imgs[:, :, [1]].mean().cpu())
+        means_blue.append(imgs[:, :, [2]].mean().cpu())
+        stds_red.append(imgs[:, :, [0]].std().cpu())
+        stds_green.append(imgs[:, :, [1]].std().cpu())
+        stds_blue.append(imgs[:, :, [2]].std().cpu())
+    means = torch.tensor([torch.stack(means_red).mean(), torch.stack(means_green).mean(), torch.stack(means_blue).mean()])
+    stds = torch.tensor([torch.stack(stds_red).mean(), torch.stack(stds_green).mean(), torch.stack(stds_blue).mean()])
+    return means, stds
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    train_dataset, val_dataset, test_dataset = get_nuscenes_data(args)
+    train_loader, val_loader, test_loader = get_dataloaders(
+        train_dataset, 
+        val_dataset, 
+        test_dataset, 
+        args
+    )
+    print(train_dataset[0][0])
+    print(train_dataset[0][0].shape)
+    # mean, std = get_norm_params(args, train_loader)
+    # print(mean, std)
+    

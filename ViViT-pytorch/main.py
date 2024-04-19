@@ -14,15 +14,14 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--name", type=str, default="ViViT")
     parser.add_argument("--data-path", type=str)
-    parser.add_argument("--anns-path", type=str, default="./annotations/")
-    parser.add_argument("--img-size", type=int, default=700)
-    parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--img-size", type=int, default=400)
+    parser.add_argument("--batch-size", type=int, default=2)
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--train-steps", type=int, default=1000)
     parser.add_argument("--eval-steps", type=int, default=100)
-    parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--workers", type=int, default=4)
-    parser.add_argument("--n-frames", type=int, default=20)
+    parser.add_argument("--n-frames", type=int, default=48)
     args = parser.parse_args()
     return args
 
@@ -158,14 +157,14 @@ if __name__ == "__main__":
 
     model = ViViT(
         image_size=args.img_size, 
-        patch_size=20,
+        patch_size=25,
         num_classes=2,
         num_frames=args.n_frames,
         dim=192,
-        depth=4,
+        depth=6,
         heads=4,
         in_channels=3,
-        dim_head=16,
+        dim_head=128,
         dropout=0.1,
         emb_dropout=0.1,
         scale_dim=4
