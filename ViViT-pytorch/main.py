@@ -65,9 +65,7 @@ def train_loop(args, model, optimizer, criterion, train_loader, val_loader, sche
     )
     train_iter = iter(train_loader)
     train_loss = metrics.AverageMeter()
-    val_loss = metrics.AverageMeter()
     train_acc = metrics.AverageMeter()
-    val_acc = metrics.AverageMeter()
     top1_acc = 0
     top_f1 = 0
 
@@ -98,6 +96,7 @@ def train_loop(args, model, optimizer, criterion, train_loader, val_loader, sche
             model.eval()
             predictions = torch.tensor([], dtype=torch.float32)
             ground_truths = torch.tensor([], dtype=torch.int32)
+            val_losses = torch.tensor([], dtype=torch.float32)
             for val_batch in val_loader:
                 imgs, labels = val_batch
                 imgs, labels = imgs.to(args.device), labels.to(args.device)
@@ -106,18 +105,19 @@ def train_loop(args, model, optimizer, criterion, train_loader, val_loader, sche
                     predictions = torch.cat((predictions, preds.cpu()))
                     ground_truths = torch.cat((ground_truths, labels.int().cpu()))
                     loss = criterion(preds, labels)
-                    val_loss.update(loss.item())
-                    val_acc.update(metrics.accuracy(preds, labels))
+                    val_losses = torch.cat((val_losses, torch.tensor([loss.item()])))
                 pbar.update(1)
 
+            val_loss = val_losses.mean().cpu()
+            val_acc = metrics.accuracy(predictions, ground_truths)
             prec = metrics.precision(predictions, ground_truths)
             rec = metrics.recall(predictions, ground_truths)
             f1 = metrics.f1_score(predictions, ground_truths)
-            pbar.set_description(f"{step+1:4d}/{args.train_steps}  VALID/loss: {val_loss.avg:.4E} | VALID/acc: {val_acc.avg:.4f}" \
+            pbar.set_description(f"{step+1:4d}/{args.train_steps}  VALID/loss: {val_loss:.4E} | VALID/acc: {val_acc:.4f}" \
                                  f" | VALID/prec: {prec:.4f} | VALID/rec: {rec:.4f} | VALID/f1: {f1:.4f}")
             pbar.close()
-            if val_acc.avg > top1_acc:
-                top1_acc = val_acc.avg
+            if val_acc > top1_acc:
+                top1_acc = val_acc
             if f1 > top_f1:
                 top_f1 = f1
                 save_path = Path('checkpoints/')
@@ -129,15 +129,13 @@ def train_loop(args, model, optimizer, criterion, train_loader, val_loader, sche
             wandb.log({
                 "train/loss": train_loss.avg,
                 "train/acc": train_acc.avg,
-                "val/loss": val_loss.avg,
-                "val/acc": val_acc.avg,
+                "val/loss": val_loss,
+                "val/acc": val_acc,
                 "top1_acc": top1_acc,
                 "top_f": top_f1
             }, step = step)
             # wandb.watch(models = model, log='all')
             print(f'top_f1: {top_f1:.6f}\n')
-            val_loss.reset()
-            val_acc.reset()
             train_loss.reset()
             train_acc.reset()
             file_debug(predictions, ground_truths, step, args)
