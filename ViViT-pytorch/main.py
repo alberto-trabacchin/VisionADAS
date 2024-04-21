@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--n-frames", type=int, default=48)
+    parser.add_argument("--patch-size", type=int, default=80)
     args = parser.parse_args()
     return args
 
@@ -40,10 +41,11 @@ def get_model_size(model):
 
 def file_debug(preds, labels, step, args):
     Path("./debug").mkdir(parents=True, exist_ok=True)
-    Path("./debug/predictions.txt").touch(exist_ok=True)
-    with open("./debug/predictions.txt", "a") as f:
+    Path(f"./debug/preds_{args.name}.txt").touch(exist_ok=True)
+    with open(f"./debug/preds_{args.name}.txt", "a") as f:
         f.write(f"STEP: {step+1}/{args.train_steps}\n" \
-                f"Predictions: {preds.argmax(dim=1)}\n" \
+                f"Predictions: {preds}\n" \
+                f"Predictions Argmax: {preds.argmax(dim=1)}\n" \
                 f"Ground Truth: {labels}\n" \
                 f"Accuracy: {metrics.accuracy(preds, labels):.4f}\n" \
                 f"Precision: {metrics.precision(preds, labels):.4f}\n" \
@@ -56,8 +58,8 @@ def train_loop(args, model, optimizer, criterion, train_loader, val_loader, sche
     pbar = tqdm.tqdm(total=args.eval_steps, position=0, leave=True)
     train_lb_size = train_loader.dataset.__len__()
     val_size = val_loader.dataset.__len__()
-    if Path("debug/predictions.txt").exists():
-        Path("debug/predictions.txt").unlink()
+    if Path(f"debug/preds_{args.name}.txt").exists():
+        Path(f"debug/preds_{args.name}.txt").unlink()
     wandb.init(
         project='SceneUnderstanding',
         name=f'{args.name}_{train_lb_size}LB_{val_size}VL',
@@ -155,14 +157,14 @@ if __name__ == "__main__":
 
     model = ViViT(
         image_size=args.img_size, 
-        patch_size=20,
+        patch_size=args.patch_size,
         num_classes=2,
         num_frames=args.n_frames,
-        dim=300,
-        depth=10,
-        heads=4,
+        dim=1000,
+        depth=20,
+        heads=8,
         in_channels=3,
-        dim_head=128,
+        dim_head=512,
         dropout=0.1,
         emb_dropout=0.1,
         scale_dim=4
