@@ -162,6 +162,6 @@ if __name__ == "__main__":
     )
     print(train_dataset[0][0])
     print(train_dataset[0][0].shape)
-    # mean, std = get_norm_params(args, train_loader)
-    # print(mean, std)
+    mean, std = get_norm_params(args, train_loader)
+    print(mean, std)
     
