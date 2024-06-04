@@ -88,6 +88,7 @@ python train_sl.py \
        --seed=42 \
        --eta-min=1e-5
 ```
+Specify the path to bdd100k in --data-path.
 
 ## Semi-Supervised Training (MPL)
 To run the default configuration:
@@ -102,10 +103,11 @@ python train_mpl.py \
        --heads=8 \
        --mlp-dim=2048 \
        --lr=1e-3 \
-       --batch-size=32 \
+       --batch-size=16 \
        --epochs=100 \
        --workers=4 \
        --device=cuda \
        --seed=42 \
        --eta-min=1e-5
 ```
+Specify the path to bdd100k in --data-path.
