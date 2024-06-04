@@ -23,7 +23,7 @@ def parse_args():
     parser.add_argument('--data-path', type=str, help='example: .../bdd100k')
 
     # Model params
-    parser.add_argument('--img_size', type=int, default=512)
+    parser.add_argument('--img-size', type=int, default=512)
     parser.add_argument('--patch-size', type=int, default=32)
     parser.add_argument('--embed-dim', type=int, default=256)
     parser.add_argument('--depth', type=int, default=12)
