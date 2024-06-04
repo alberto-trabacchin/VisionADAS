@@ -19,7 +19,6 @@ desired_combination = {
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-path", type=str, help='.../bdd100k/')
-    parser.add_argument("--output-path", type=str, help='.../bdd100k/custom_dataset/')
     parser.add_argument("--img_size", type=int, default=600)
     args = parser.parse_args()
     return args
@@ -119,7 +118,7 @@ if __name__ == '__main__':
     val_annotation_file = Path(f'{args.data_path}/labels/det_20/det_val.json')
     train_image_directory = Path(f'{args.data_path}/images/100k/train/')
     val_image_directory = Path(f'{args.data_path}/images/100k/val/')
-    output_directory = Path(f'{args.output_path}/')
+    output_directory = Path(f'{args.data_path}/custom_dataset/')
     test_image_directory = Path(f'{args.data_path}/images/100k/test/')
     videos_directory = Path(f'{args.data_path}/videos/train/')
 
