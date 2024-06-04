@@ -14,13 +14,13 @@ desired_combination = {
     'bicycle': 5000,  # Minimum area in pixels for 'car',
     'rider': 5000
 }
-desired_size = 600
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-path", type=str, help='.../bdd100k/')
     parser.add_argument("--output-path", type=str, help='.../bdd100k/custom_dataset/')
+    parser.add_argument("--img_size", type=int, default=600)
     args = parser.parse_args()
     return args
 
@@ -119,14 +119,14 @@ if __name__ == '__main__':
     val_annotation_file = Path(f'{args.data_path}/labels/det_20/det_val.json')
     train_image_directory = Path(f'{args.data_path}/images/100k/train/')
     val_image_directory = Path(f'{args.data_path}/images/100k/val/')
-    output_directory = Path(f'{args.data_path}/custom_dataset/')
+    output_directory = Path(f'{args.output_path}/')
     test_image_directory = Path(f'{args.data_path}/images/100k/test/')
     videos_directory = Path(f'{args.data_path}/videos/train/')
 
     # Run the dataset preparation
     print('Preparing custom train dataset...')
-    prepare_custom_dataset(train_annotation_file, train_image_directory, output_directory/"train", desired_size)
+    prepare_custom_dataset(train_annotation_file, train_image_directory, output_directory/"train", args.img_size)
     print('Preparing custom validation dataset...')
-    prepare_custom_dataset(val_annotation_file, val_image_directory, output_directory/"val", desired_size)
+    prepare_custom_dataset(val_annotation_file, val_image_directory, output_directory/"val", args.img_size)
     print('Preparing custom unlabeled dataset...')
-    prepare_unlabeled_set(videos_directory, output_directory/"unlabeled", desired_size)
+    prepare_unlabeled_set(videos_directory, output_directory/"unlabeled", args.img_size)
