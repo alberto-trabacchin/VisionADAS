@@ -56,7 +56,19 @@ python prepare_bdd100k.py \
        --img_size=512
 ```
 
-## Supervised Learning
+## Tracking with Weights & Biases
+To enable wandb:
+```bash
+wandb online
+```
+To disable wandb:
+```bash
+wandb disabled
+```
+If enabled, it will create a folder named *wandb*.
+By default, models with minimum val loss are saved in the *checkpoints/* folder.
+
+## Supervised Training
 To run the default configuration:
 ```bash
 python train_sl.py \
@@ -77,7 +89,7 @@ python train_sl.py \
        --eta-min=1e-5
 ```
 
-## Semi-Supervised Learning (MPL)
+## Semi-Supervised Training (MPL)
 To run the default configuration:
 ```bash
 python train_mpl.py \
