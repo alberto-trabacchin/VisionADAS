@@ -52,9 +52,9 @@ To prepare the preprocessed dataset, run the following command:
 ```bash
 python prepare_bdd100k.py \
        --data_dir=/path/to/bdd100k \
-       --output_dir=/path/to/output/folder \
        --img_size=512
 ```
+Custom dataset is created in *bdd100k/custom_dataset/*
 
 ## Tracking with Weights & Biases
 To enable wandb:
