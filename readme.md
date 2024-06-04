@@ -73,7 +73,7 @@ To run the default configuration:
 ```bash
 python train_sl.py \
        --name="default_supervised" \
-       --data-path=/path/to/output/folder \
+       --data-path=/path/to/bdd100k/folder \
        --img-size=512 \
        --patch-size=32 \
        --embed-dim=256 \
@@ -95,7 +95,7 @@ To run the default configuration:
 ```bash
 python train_mpl.py \
        --name="default_mpl" \
-       --data-path=/path/to/output/folder \
+       --data-path=/path/to/bdd100k/folder \
        --img-size=512 \
        --patch-size=32 \
        --embed-dim=256 \
