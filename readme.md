@@ -64,7 +64,7 @@ python train_sl.py \
        --data-path=/path/to/output/folder \
        --img-size=512 \
        --patch-size=32 \
-       --embed_dim=256 \
+       --embed-dim=256 \
        --depth=12 \
        --heads=8 \
        --mlp-dim=2048 \
@@ -85,7 +85,7 @@ python train_mpl.py \
        --data-path=/path/to/output/folder \
        --img-size=512 \
        --patch-size=32 \
-       --embed_dim=256 \
+       --embed-dim=256 \
        --depth=12 \
        --heads=8 \
        --mlp-dim=2048 \
