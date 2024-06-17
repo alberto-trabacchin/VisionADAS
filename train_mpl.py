@@ -165,10 +165,6 @@ def train_loop(args, teacher, student,
             stud_train_f1.update(f1_score(stud_preds, targets, zero_division=0))
 
             pbar.update(1)
-
-            count += 1
-            if count == 10:
-                break
         
         pbar.set_description(
             f"T: {epoch+1:4d}/{args.epochs} "
