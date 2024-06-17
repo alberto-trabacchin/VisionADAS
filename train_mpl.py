@@ -95,7 +95,6 @@ def train_loop(args, teacher, student,
     stud_min_val_loss = np.inf
 
     for epoch in range(args.epochs):
-        count = 0
         print(f"\n{'-' * 80}")
         teacher.train()
         student.train()
