@@ -262,7 +262,7 @@ def train_loop(args, teacher, student,
 
         print(
             f"\n"\
-            f"t/j: {teach_top_val_f1:.4E} | " \
+            f"t/top-f1: {teach_top_val_f1:.4E} | " \
             f"t/top-acc: {teach_top_val_acc:.4E} | " \
             f"t/min-loss: {teach_min_val_loss:.4E} \n" \
             f"s/top-f1: {stud_top_val_f1:.4E} | " \
