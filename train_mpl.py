@@ -33,11 +33,11 @@ def parse_args():
     # Training params
     parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--epochs', type=int, default=100)
-    parser.add_argument('--lr', type=float, default=1e-3)
+    parser.add_argument('--lr', type=float, default=1e-5)
     parser.add_argument('--workers', type=int, default=4)
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--eta-min', type=float, default=1e-5)
+    parser.add_argument('--eta-min', type=float, default=1e-6)
     args = parser.parse_args()
     return args
 

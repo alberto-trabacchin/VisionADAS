@@ -15,7 +15,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     # General params
-    parser.add_argument('--name', type=str, default='default')
+    parser.add_argument('--model-name', type=str, help='example: ViT-B32', required=True)
     parser.add_argument('--data-path', type=str, help='example: .../bdd100k')
 
     # Model params
@@ -137,7 +137,7 @@ def plot_roc_curve(y_true, y_preds_sl, y_preds_mpl):
 
 if __name__ == "__main__":
     args = parse_args()
-    model_name = "ViT-B32"
+    model_name = args.model_name
     sl_model_path = Path(f"./checkpoints/sl/{model_name}-SL.pth")
     mpl_model_path = Path(f"./checkpoints/mpl/{model_name}-MPL_teacher.pth")
     sl_roc_curve_path = Path(f"./roc_curve/{model_name}-SL.png")
@@ -174,7 +174,6 @@ if __name__ == "__main__":
     model.to(device)
     model.eval()
     y_preds_mpl, y_true = validate_model(model, val_loader)
-    np.save("./auc_roc/y_true.npy", y_true)
-    np.save("./auc_roc/y_preds_sl.npy", y_preds_sl)
-    np.save("./auc_roc/y_preds_mpl.npy", y_preds_mpl)
-    plot_roc_curve(y_true, y_preds_sl, y_preds_mpl)
+    np.save(f"auc_roc/{model_name}/y_true.npy", y_true)
+    np.save(f"auc_roc/{model_name}/y_preds_sl.npy", y_preds_sl)
+    np.save(f"auc_roc/{model_name}/y_preds_mpl.npy", y_preds_mpl)

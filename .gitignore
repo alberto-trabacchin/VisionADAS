@@ -163,3 +163,4 @@ wandb/*
 checkpoints/*
 auc_roc/*.npy
 backup/*
+auc_roc/*/*.npy
