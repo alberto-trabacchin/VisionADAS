@@ -31,7 +31,7 @@ def parse_args():
 
 
 def get_hyperparams(model_name):
-    if model_name == "ViT-B32":
+    if model_name == "ViT-B32" or model_name == "ViT-B32-D941k":
         return {
             "img_size": 512,
             "patch_size": 32,
@@ -40,7 +40,7 @@ def get_hyperparams(model_name):
             "heads": 12,
             "mlp_dim": 3072
         }
-    elif model_name == "ViT-L32":
+    elif model_name == "ViT-L32" or model_name == "ViT-L32-D941k":
         return {
             "img_size": 512,
             "patch_size": 32,
@@ -71,7 +71,7 @@ def load_model(model_name, model_path):
   
     # Load the model weights
     state_dict = torch.load(model_path)
-    if mode == "MPL_teacher":
+    if mode == "MPL_student":
         new_state_dict = OrderedDict()
         for k, v in state_dict.items():
             name = k[7:] # remove `module.`
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     args = parse_args()
     model_name = args.model_name
     sl_model_path = Path(f"./checkpoints/sl/{model_name}-SL.pth")
-    mpl_model_path = Path(f"./checkpoints/mpl/{model_name}-MPL_teacher.pth")
+    mpl_model_path = Path(f"./checkpoints/mpl/{model_name}-MPL_student.pth")
     sl_roc_curve_path = Path(f"./roc_curve/{model_name}-SL.png")
     mpl_roc_curve_path = Path(f"./roc_curve/{model_name}-MPL.png")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
